@@ -1,18 +1,18 @@
 import type { AgentVisualStatus } from "@/gateway/types";
 import i18n from "@/i18n";
 
-export const SVG_WIDTH = 1200;
-export const SVG_HEIGHT = 700;
+export const SVG_WIDTH = 1600;
+export const SVG_HEIGHT = 940;
 
 // Unified office floor plan: one building shell with internal partitions
 export const OFFICE = {
-  x: 30,
-  y: 20,
-  width: SVG_WIDTH - 60,
-  height: SVG_HEIGHT - 40,
+  x: 50,
+  y: 40,
+  width: SVG_WIDTH - 100,
+  height: SVG_HEIGHT - 80,
   wallThickness: 6,
   cornerRadius: 18,
-  corridorWidth: 28,
+  corridorWidth: 36,
 } as const;
 
 const halfW = (OFFICE.width - OFFICE.corridorWidth) / 2;
@@ -109,20 +109,20 @@ export const FURNITURE = {
 export const DESK_UNIT = {
   width: 140,
   height: 110,
-  avatarRadius: 20,
-  avatarOffsetY: -8,
+  avatarRadius: 14,
+  avatarOffsetY: -6,
 } as const;
 
 // Agent 头像
 export const AVATAR = {
-  radius: 20,
-  selectedRadius: 24,
-  strokeWidth: 3,
+  radius: 14,
+  selectedRadius: 17,
+  strokeWidth: 2,
   nameLabelMaxChars: 12,
 } as const;
 
 // 3D 场景常量
-// SVG 1200×700 maps to 3D building 16×12 world units
+// SVG viewBox maps to 3D building 16×12 world units
 export const SCALE_X_2D_TO_3D = 16 / SVG_WIDTH;
 export const SCALE_Z_2D_TO_3D = 12 / SVG_HEIGHT;
 export const SCALE_2D_TO_3D = 0.01; // legacy — kept for tests

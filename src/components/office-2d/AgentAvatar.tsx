@@ -21,6 +21,23 @@ import { useOfficeStore } from "@/store/office-store";
 const WALK_BOB_AMPLITUDE = 2;
 const WALK_BOB_FREQ = 8;
 
+// Sprite animation constants
+// Sprite sheets are 1664x48px strips: 52 frames of 32x48px each
+// Frames 0-5: idle_right, 6-11: idle_up, 12-17: idle_left, 18-23: idle_down
+// Frames 24-29: run_right, 30-35: run_up, 36-41: run_left, 42-47: run_down
+const SPRITE_FRAME_W = 32;
+const SPRITE_FRAME_H = 48;
+const SPRITE_FPS_WALK = 8;
+const SPRITE_FPS_IDLE = 3;
+
+// Frame ranges for each animation
+const ANIM_IDLE_DOWN_START = 18;
+const ANIM_IDLE_DOWN_END = 23;
+const ANIM_RUN_DOWN_START = 42;
+const ANIM_RUN_DOWN_END = 47;
+// Static frame for working/thinking states
+const STATIC_IDLE_FRAME = 18;
+
 interface AgentAvatarProps {
   agent: VisualAgent;
 }
@@ -33,8 +50,11 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   const theme = useOfficeStore((s) => s.theme);
   const [hovered, setHovered] = useState(false);
   const gRef = useRef<SVGGElement>(null);
+  const spriteRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
+  const spriteAccumRef = useRef<number>(0);
+  const spriteFrameRef = useRef<number>(STATIC_IDLE_FRAME);
 
   const isSelected = selectedAgentId === agent.id;
   const r = isSelected ? AVATAR.selectedRadius : AVATAR.radius;
@@ -84,27 +104,62 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
         }
       }
 
+      // Sprite frame animation
+      if (spriteRef.current) {
+        const isCurrentlyWalking = a.movement !== null;
+        const fps = isCurrentlyWalking ? SPRITE_FPS_WALK : SPRITE_FPS_IDLE;
+        const frameStart = isCurrentlyWalking ? ANIM_RUN_DOWN_START : ANIM_IDLE_DOWN_START;
+        const frameEnd = isCurrentlyWalking ? ANIM_RUN_DOWN_END : ANIM_IDLE_DOWN_END;
+        const frameCount = frameEnd - frameStart + 1;
+
+        spriteAccumRef.current += delta;
+        const frameDuration = 1 / fps;
+        if (spriteAccumRef.current >= frameDuration) {
+          spriteAccumRef.current -= frameDuration;
+          const localFrame = (spriteFrameRef.current - frameStart + 1) % frameCount;
+          spriteFrameRef.current = frameStart + localFrame;
+          spriteRef.current.style.backgroundPosition = `${-(spriteFrameRef.current * SPRITE_FRAME_W)}px 0px`;
+        }
+      }
+
       gRef.current.setAttribute(
         "transform",
         `translate(${a.position.x}, ${a.position.y + bobY}) scale(${walkScale})`,
       );
 
-      if (a.movement) {
-        rafRef.current = requestAnimationFrame(animate);
-      }
+      // Always continue the animation loop — for walk bob + sprite cycling (idle or walk)
+      rafRef.current = requestAnimationFrame(animate);
     },
     [tickMovement],
   );
 
+  // Determine if sprite should show a static frame (working states) vs animated cycle
+  const isStaticSprite = agent.status === "thinking" || agent.status === "tool_calling";
+
   useEffect(() => {
-    if (isWalking) {
-      lastTimeRef.current = 0;
-      rafRef.current = requestAnimationFrame(animate);
+    if (isStaticSprite) {
+      // Static frame for working/thinking — no animation loop needed
+      spriteFrameRef.current = STATIC_IDLE_FRAME;
+      if (spriteRef.current) {
+        spriteRef.current.style.backgroundPosition = `${-(STATIC_IDLE_FRAME * SPRITE_FRAME_W)}px 0px`;
+      }
+      return;
     }
+
+    // Reset frame tracking for new animation state
+    if (isWalking) {
+      spriteFrameRef.current = ANIM_RUN_DOWN_START;
+    } else {
+      spriteFrameRef.current = ANIM_IDLE_DOWN_START;
+    }
+    spriteAccumRef.current = 0;
+    lastTimeRef.current = 0;
+    rafRef.current = requestAnimationFrame(animate);
+
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [isWalking, animate]);
+  }, [isWalking, isStaticSprite, animate]);
 
   return (
     <g
@@ -130,16 +185,17 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
       <StatusRing status={agent.status} r={r} color={color} isWalking={isWalking} isPlaceholder={isPlaceholder} />
 
       {/* Pixel sprite character */}
-      <foreignObject x={-24} y={-36} width={48} height={48} style={{ pointerEvents: "none", overflow: "visible" }}>
+      <foreignObject x={-16} y={-24} width={32} height={48} style={{ pointerEvents: "none", overflow: "visible" }}>
         <div
+          ref={spriteRef}
           style={{
-            width: 32,
-            height: 48,
+            width: SPRITE_FRAME_W,
+            height: SPRITE_FRAME_H,
             backgroundImage: `url(/pixel/characters/${spriteName}.png)`,
-            backgroundPosition: '0 0',
-            backgroundSize: 'auto 48px',
+            backgroundPosition: `${-(STATIC_IDLE_FRAME * SPRITE_FRAME_W)}px 0px`,
+            backgroundSize: `auto ${SPRITE_FRAME_H}px`,
             imageRendering: 'pixelated',
-            transform: 'scale(1.5)',
+            transform: 'scale(1.0)',
             transformOrigin: 'top left',
           }}
         />
