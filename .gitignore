@@ -39,3 +39,4 @@ src/**/__tests__/
 
 #
 ClawX/
+.vercel

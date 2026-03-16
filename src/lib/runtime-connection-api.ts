@@ -8,6 +8,11 @@ interface RuntimeConnectionRequest {
 }
 
 export async function updateRuntimeConnectionTarget(payload: RuntimeConnectionRequest) {
+  // In mock mode, skip the runtime connection API call
+  if (import.meta.env.VITE_MOCK === "true") {
+    return;
+  }
+
   const response = await fetch(RUNTIME_CONNECTION_API_PATH, {
     method: "POST",
     headers: {
