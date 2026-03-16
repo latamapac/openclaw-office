@@ -86,7 +86,11 @@ export async function initAdapter(
 }
 
 export function isMockMode(): boolean {
-  return import.meta.env.VITE_MOCK === "true";
+  const mock = import.meta.env.VITE_MOCK;
+  if (mock === "true" || mock === true) return true;
+  // Auto-mock when no gateway is configured (standalone deploy)
+  if (!import.meta.env.VITE_GATEWAY_URL && !import.meta.env.VITE_GATEWAY_TOKEN) return true;
+  return false;
 }
 
 function createWsAdapter(

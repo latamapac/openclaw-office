@@ -14,7 +14,13 @@ function canUseLocalStorage() {
 
 export function readConnectionPreference(): ConnectionPreference | null {
   // NeoCorp mode: always use local mock, skip connection dialog
-  if (import.meta.env.VITE_MOCK === "true") {
+  const isMock = import.meta.env.VITE_MOCK === "true" || import.meta.env.VITE_MOCK === true;
+  if (isMock) {
+    return { mode: "local", gatewayUrl: "", gatewayToken: "" };
+  }
+
+  // Also auto-connect if no gateway URL is configured (standalone deploy)
+  if (!import.meta.env.VITE_GATEWAY_URL && !import.meta.env.VITE_GATEWAY_TOKEN) {
     return { mode: "local", gatewayUrl: "", gatewayToken: "" };
   }
 
