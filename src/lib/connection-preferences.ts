@@ -14,7 +14,7 @@ function canUseLocalStorage() {
 
 export function readConnectionPreference(): ConnectionPreference | null {
   // NeoCorp mode: always use local mock, skip connection dialog
-  const isMock = import.meta.env.VITE_MOCK === "true" || import.meta.env.VITE_MOCK === true;
+  const isMock = String(import.meta.env.VITE_MOCK ?? "") === "true";
   if (isMock) {
     return { mode: "local", gatewayUrl: "", gatewayToken: "" };
   }

@@ -9,7 +9,7 @@ interface RuntimeConnectionRequest {
 
 export async function updateRuntimeConnectionTarget(payload: RuntimeConnectionRequest) {
   // In mock/standalone mode, skip the runtime connection API call
-  const isMock = import.meta.env.VITE_MOCK === "true" || import.meta.env.VITE_MOCK === true;
+  const isMock = String(import.meta.env.VITE_MOCK ?? "") === "true";
   if (isMock || (!import.meta.env.VITE_GATEWAY_URL && !import.meta.env.VITE_GATEWAY_TOKEN)) {
     return;
   }

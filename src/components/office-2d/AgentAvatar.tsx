@@ -1,8 +1,21 @@
 import { useState, memo, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { VisualAgent, AgentVisualStatus } from "@/gateway/types";
-import { generateSvgAvatar, type SvgAvatarData } from "@/lib/avatar-generator";
+import type { SvgAvatarData } from "@/lib/avatar-generator";
 import { STATUS_COLORS, AVATAR } from "@/lib/constants";
+
+const PIXEL_SPRITES = [
+  'adam', 'ash', 'lucy', 'nancy', 'bob', 'alice',
+  'charlie', 'diana', 'edward', 'fiona', 'george', 'hannah',
+] as const;
+
+function getPixelSprite(agentId: string): string {
+  let hash = 0;
+  for (let i = 0; i < agentId.length; i++) {
+    hash = ((hash << 5) - hash + agentId.charCodeAt(i)) | 0;
+  }
+  return PIXEL_SPRITES[Math.abs(hash) % PIXEL_SPRITES.length];
+}
 import { useOfficeStore } from "@/store/office-store";
 
 const WALK_BOB_AMPLITUDE = 2;
@@ -30,8 +43,7 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   const isWalking = agent.movement !== null;
   const color = isPlaceholder || isUnconfirmed ? "#6b7280" : STATUS_COLORS[agent.status];
   const isDark = theme === "dark";
-  const avatarData = generateSvgAvatar(agent.id);
-  const clipId = `avatar-clip-${agent.id}`;
+  const spriteName = getPixelSprite(agent.id);
   const groupOpacity = isPlaceholder ? 0.3 : isUnconfirmed ? 0.5 : 1;
 
   const displayName =
@@ -117,16 +129,21 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
       {/* Status ring with animation */}
       <StatusRing status={agent.status} r={r} color={color} isWalking={isWalking} isPlaceholder={isPlaceholder} />
 
-      {/* Avatar face */}
-      <defs>
-        <clipPath id={clipId}>
-          <circle r={r - 2} />
-        </clipPath>
-      </defs>
-      <circle r={r - 2} fill={isDark ? "#1e293b" : "#f8fafc"} />
-      <g clipPath={`url(#${clipId})`}>
-        <AvatarFace data={avatarData} size={r * 2 - 4} />
-      </g>
+      {/* Pixel sprite character */}
+      <foreignObject x={-24} y={-36} width={48} height={48} style={{ pointerEvents: "none", overflow: "visible" }}>
+        <div
+          style={{
+            width: 32,
+            height: 48,
+            backgroundImage: `url(/pixel/characters/${spriteName}.png)`,
+            backgroundPosition: '0 0',
+            backgroundSize: 'auto 48px',
+            imageRendering: 'pixelated',
+            transform: 'scale(1.5)',
+            transformOrigin: 'top left',
+          }}
+        />
+      </foreignObject>
 
       {/* Sub-agent badge */}
       {agent.isSubAgent && (
@@ -200,15 +217,16 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
           <span
             title={agent.name}
             style={{
-              fontSize: "11px",
-              fontWeight: 500,
-              color: isDark ? "#cbd5e1" : "#475569",
-              backgroundColor: isDark ? "rgba(30,41,59,0.7)" : "rgba(255,255,255,0.75)",
-              backdropFilter: "blur(6px)",
-              borderRadius: "6px",
-              padding: "1px 8px",
+              fontSize: "7px",
+              fontFamily: "'Press Start 2P', monospace",
+              fontWeight: 400,
+              color: isDark ? "#D7FF3B" : "#1a1a2e",
+              backgroundColor: isDark ? "rgba(5,5,8,0.85)" : "rgba(255,255,255,0.85)",
+              borderRadius: "2px",
+              padding: "2px 6px",
               whiteSpace: "nowrap",
-              border: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
+              border: `1px solid ${isDark ? "rgba(215,255,59,0.2)" : "rgba(0,0,0,0.1)"}`,
+              imageRendering: "pixelated",
             }}
           >
             {displayName}
@@ -347,9 +365,10 @@ function SpeakingIndicator({ r }: { r: number }) {
   );
 }
 
-/* --- Avatar face SVG based on SvgAvatarData --- */
+/* --- Avatar face SVG (legacy, kept for reference) --- */
 
-function AvatarFace({ data, size }: { data: SvgAvatarData; size: number }) {
+// @ts-ignore -- unused after pixel sprite migration
+function _AvatarFace({ data, size }: { data: SvgAvatarData; size: number }) {
   const s = size / 2;
   const faceRx =
     data.faceShape === "round" ? s * 0.8 : data.faceShape === "oval" ? s * 0.7 : s * 0.75;
