@@ -30,7 +30,15 @@ import { useOfficeStore } from "@/store/office-store";
 const WALK_BOB_AMPLITUDE = 2;
 const WALK_BOB_FREQ = 8;
 
-// Walk bob animation (position-based, no sprite frame cycling for generated portraits)
+// Sprite sheet animation constants — 52 frames of 32x48px each
+const SPRITE_FRAME_W = 32;
+const SPRITE_FPS_WALK = 8;
+const SPRITE_FPS_IDLE = 3;
+const ANIM_IDLE_DOWN_START = 18;
+const ANIM_IDLE_DOWN_END = 23;
+const ANIM_RUN_DOWN_START = 42;
+const ANIM_RUN_DOWN_END = 47;
+const STATIC_IDLE_FRAME = 18;
 
 interface AgentAvatarProps {
   agent: VisualAgent;
@@ -47,6 +55,8 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   const spriteRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
+  const spriteAccumRef = useRef<number>(0);
+  const spriteFrameRef = useRef<number>(STATIC_IDLE_FRAME);
 
   const isSelected = selectedAgentId === agent.id;
   const r = isSelected ? AVATAR.selectedRadius : AVATAR.radius;
@@ -96,24 +106,54 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
         }
       }
 
+      // Sprite frame animation
+      if (spriteRef.current) {
+        const isCurrentlyWalking = a.movement !== null;
+        const fps = isCurrentlyWalking ? SPRITE_FPS_WALK : SPRITE_FPS_IDLE;
+        const frameStart = isCurrentlyWalking ? ANIM_RUN_DOWN_START : ANIM_IDLE_DOWN_START;
+        const frameEnd = isCurrentlyWalking ? ANIM_RUN_DOWN_END : ANIM_IDLE_DOWN_END;
+        const frameCount = frameEnd - frameStart + 1;
+
+        spriteAccumRef.current += delta;
+        const frameDuration = 1 / fps;
+        if (spriteAccumRef.current >= frameDuration) {
+          spriteAccumRef.current -= frameDuration;
+          const localFrame = (spriteFrameRef.current - frameStart + 1) % frameCount;
+          spriteFrameRef.current = frameStart + localFrame;
+          spriteRef.current.style.backgroundPosition = `${-(spriteFrameRef.current * SPRITE_FRAME_W)}px 0px`;
+        }
+      }
+
       gRef.current.setAttribute(
         "transform",
         `translate(${a.position.x}, ${a.position.y + bobY}) scale(${walkScale})`,
       );
 
-      // Always continue the animation loop — for walk bob + sprite cycling (idle or walk)
       rafRef.current = requestAnimationFrame(animate);
     },
     [tickMovement],
   );
 
+  const isStaticSprite = agent.status === "thinking" || agent.status === "tool_calling";
+
   useEffect(() => {
+    if (isStaticSprite) {
+      spriteFrameRef.current = STATIC_IDLE_FRAME;
+      if (spriteRef.current) {
+        spriteRef.current.style.backgroundPosition = `${-(STATIC_IDLE_FRAME * SPRITE_FRAME_W)}px 0px`;
+      }
+      return;
+    }
+
+    spriteFrameRef.current = isWalking ? ANIM_RUN_DOWN_START : ANIM_IDLE_DOWN_START;
+    spriteAccumRef.current = 0;
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(animate);
+
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [isWalking, animate]);
+  }, [isWalking, isStaticSprite, animate]);
 
   return (
     <g
@@ -138,19 +178,19 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
       {/* Status ring with animation */}
       <StatusRing status={agent.status} r={r} color={color} isWalking={isWalking} isPlaceholder={isPlaceholder} />
 
-      {/* Pixel sprite character — Gemini-generated chibi portraits */}
-      <foreignObject x={-20} y={-32} width={40} height={40} style={{ pointerEvents: "none", overflow: "visible" }}>
+      {/* Animated pixel sprite — 52-frame sprite sheet */}
+      <foreignObject x={-16} y={-28} width={32} height={48} style={{ pointerEvents: "none", overflow: "visible" }}>
         <div
           ref={spriteRef}
           style={{
-            width: 40,
-            height: 40,
-            backgroundImage: `url(/pixel/characters/generated/${spriteName}.png)`,
-            backgroundPosition: 'center center',
-            backgroundSize: 'contain',
-            backgroundRepeat: 'no-repeat',
+            width: 32,
+            height: 48,
+            backgroundImage: `url(/pixel/characters/sheets/${spriteName}.png)`,
+            backgroundPosition: `${-(STATIC_IDLE_FRAME * SPRITE_FRAME_W)}px 0px`,
+            backgroundSize: 'auto 48px',
             imageRendering: 'pixelated',
-            filter: isWalking ? 'none' : 'none',
+            transform: 'scale(1.2)',
+            transformOrigin: 'center bottom',
           }}
         />
       </foreignObject>
