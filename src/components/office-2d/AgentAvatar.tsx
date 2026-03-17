@@ -30,17 +30,16 @@ import { useOfficeStore } from "@/store/office-store";
 const WALK_BOB_AMPLITUDE = 2;
 const WALK_BOB_FREQ = 8;
 
-// Gemini walk strip: 4 frames in a horizontal strip, each ~25% of image width
-// Frame 0: idle, Frame 1: walk left, Frame 2: mid-stride, Frame 3: walk right
-const WALK_FRAMES = 4;
-const WALK_FPS = 6;
-const IDLE_FPS = 2; // slow breathing cycle between frame 0 and 2
-
-// Leads with walk strips (others fall back to static portraits)
-const HAS_WALK_STRIP = new Set([
-  'alfred', 'armand', 'cassian', 'elias', 'kira', 'leona', 'linden',
-  'lysander', 'marshall', 'mira', 'orion', 'sable', 'severin', 'soren', 'taro', 'werner',
-]);
+// Upgraded pixel-human-generator sprite sheets: 52 frames of 32x48px each
+// Frames 0-5: idle_right, 6-11: idle_up, 12-17: idle_left, 18-23: idle_down
+// Frames 24-29: run_right, 30-35: run_up, 36-41: run_left, 42-47: run_down
+const SPRITE_FRAME_W = 32;
+const SPRITE_FPS_WALK = 8;
+const SPRITE_FPS_IDLE = 3;
+const ANIM_IDLE_DOWN_START = 18;
+const ANIM_IDLE_DOWN_END = 23;
+const ANIM_RUN_DOWN_START = 42;
+const ANIM_RUN_DOWN_END = 47;
 
 interface AgentAvatarProps {
   agent: VisualAgent;
@@ -68,7 +67,6 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   const color = isPlaceholder || isUnconfirmed ? "#6b7280" : STATUS_COLORS[agent.status];
   const isDark = theme === "dark";
   const spriteName = getPixelSprite(agent.id);
-  const hasWalkStrip = HAS_WALK_STRIP.has(spriteName);
   const groupOpacity = isPlaceholder ? 0.3 : isUnconfirmed ? 0.5 : 1;
 
   const displayName =
@@ -109,23 +107,21 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
         }
       }
 
-      // Walk strip frame animation (4 frames: 0%, 25%, 50%, 75% of width)
-      if (spriteRef.current && hasWalkStrip) {
+      // Sprite sheet frame animation (52 frames, proper walk/idle cycles)
+      if (spriteRef.current) {
         const isCurrentlyWalking = a.movement !== null;
-        const fps = isCurrentlyWalking ? WALK_FPS : IDLE_FPS;
+        const fps = isCurrentlyWalking ? SPRITE_FPS_WALK : SPRITE_FPS_IDLE;
+        const frameStart = isCurrentlyWalking ? ANIM_RUN_DOWN_START : ANIM_IDLE_DOWN_START;
+        const frameEnd = isCurrentlyWalking ? ANIM_RUN_DOWN_END : ANIM_IDLE_DOWN_END;
+        const frameCount = frameEnd - frameStart + 1;
 
         spriteAccumRef.current += delta;
         const frameDuration = 1 / fps;
         if (spriteAccumRef.current >= frameDuration) {
           spriteAccumRef.current -= frameDuration;
-          if (isCurrentlyWalking) {
-            // Cycle all 4 frames for walking
-            spriteFrameRef.current = (spriteFrameRef.current + 1) % WALK_FRAMES;
-          } else {
-            // Idle: alternate between frame 0 and 2 for subtle breathing
-            spriteFrameRef.current = spriteFrameRef.current === 0 ? 2 : 0;
-          }
-          spriteRef.current.style.backgroundPosition = `${-(spriteFrameRef.current * 25)}% 0`;
+          const localFrame = (spriteFrameRef.current - frameStart + 1) % frameCount;
+          spriteFrameRef.current = frameStart + localFrame;
+          spriteRef.current.style.backgroundPosition = `${-(spriteFrameRef.current * SPRITE_FRAME_W)}px 0px`;
         }
       }
 
@@ -136,11 +132,11 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
 
       rafRef.current = requestAnimationFrame(animate);
     },
-    [tickMovement, hasWalkStrip],
+    [tickMovement],
   );
 
   useEffect(() => {
-    spriteFrameRef.current = 0;
+    spriteFrameRef.current = isWalking ? ANIM_RUN_DOWN_START : ANIM_IDLE_DOWN_START;
     spriteAccumRef.current = 0;
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(animate);
@@ -172,35 +168,21 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
       {/* Status ring with animation */}
       <StatusRing status={agent.status} r={r} color={color} isWalking={isWalking} isPlaceholder={isPlaceholder} />
 
-      {/* Animated pixel sprite — Gemini walk strip or static portrait */}
-      <foreignObject x={-20} y={-34} width={40} height={44} style={{ pointerEvents: "none", overflow: "visible" }}>
-        {hasWalkStrip ? (
-          <div
-            ref={spriteRef}
-            style={{
-              width: '100%',
-              height: '100%',
-              backgroundImage: `url(/pixel/characters/walks/${spriteName}.png)`,
-              backgroundPosition: '0% 0',
-              backgroundSize: '400% 100%',
-              backgroundRepeat: 'no-repeat',
-              imageRendering: 'pixelated',
-            }}
-          />
-        ) : (
-          <div
-            ref={spriteRef}
-            style={{
-              width: '100%',
-              height: '100%',
-              backgroundImage: `url(/pixel/characters/generated/${spriteName}.png)`,
-              backgroundPosition: 'center top',
-              backgroundSize: 'contain',
-              backgroundRepeat: 'no-repeat',
-              imageRendering: 'pixelated',
-            }}
-          />
-        )}
+      {/* Animated pixel sprite — upgraded 52-frame sprite sheet */}
+      <foreignObject x={-16} y={-28} width={32} height={48} style={{ pointerEvents: "none", overflow: "visible" }}>
+        <div
+          ref={spriteRef}
+          style={{
+            width: 32,
+            height: 48,
+            backgroundImage: `url(/pixel/characters/${spriteName}.png)`,
+            backgroundPosition: `${-(ANIM_IDLE_DOWN_START * SPRITE_FRAME_W)}px 0px`,
+            backgroundSize: 'auto 48px',
+            imageRendering: 'pixelated',
+            transform: 'scale(1.3)',
+            transformOrigin: 'center bottom',
+          }}
+        />
       </foreignObject>
 
       {/* Sub-agent badge */}
