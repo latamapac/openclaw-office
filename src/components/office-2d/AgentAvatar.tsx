@@ -30,15 +30,17 @@ import { useOfficeStore } from "@/store/office-store";
 const WALK_BOB_AMPLITUDE = 2;
 const WALK_BOB_FREQ = 8;
 
-// Sprite sheet animation constants — 52 frames of 32x48px each
-const SPRITE_FRAME_W = 32;
-const SPRITE_FPS_WALK = 8;
-const SPRITE_FPS_IDLE = 3;
-const ANIM_IDLE_DOWN_START = 18;
-const ANIM_IDLE_DOWN_END = 23;
-const ANIM_RUN_DOWN_START = 42;
-const ANIM_RUN_DOWN_END = 47;
-const STATIC_IDLE_FRAME = 18;
+// Gemini walk strip: 4 frames in a horizontal strip, each ~25% of image width
+// Frame 0: idle, Frame 1: walk left, Frame 2: mid-stride, Frame 3: walk right
+const WALK_FRAMES = 4;
+const WALK_FPS = 6;
+const IDLE_FPS = 2; // slow breathing cycle between frame 0 and 2
+
+// Leads with walk strips (others fall back to static portraits)
+const HAS_WALK_STRIP = new Set([
+  'alfred', 'armand', 'cassian', 'elias', 'kira', 'leona', 'linden',
+  'lysander', 'marshall', 'mira', 'orion', 'sable', 'severin', 'soren', 'taro', 'werner',
+]);
 
 interface AgentAvatarProps {
   agent: VisualAgent;
@@ -56,7 +58,7 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const spriteAccumRef = useRef<number>(0);
-  const spriteFrameRef = useRef<number>(STATIC_IDLE_FRAME);
+  const spriteFrameRef = useRef<number>(0);
 
   const isSelected = selectedAgentId === agent.id;
   const r = isSelected ? AVATAR.selectedRadius : AVATAR.radius;
@@ -106,21 +108,23 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
         }
       }
 
-      // Sprite frame animation
-      if (spriteRef.current) {
+      // Walk strip frame animation (4 frames: 0%, 25%, 50%, 75% of width)
+      if (spriteRef.current && hasWalkStrip) {
         const isCurrentlyWalking = a.movement !== null;
-        const fps = isCurrentlyWalking ? SPRITE_FPS_WALK : SPRITE_FPS_IDLE;
-        const frameStart = isCurrentlyWalking ? ANIM_RUN_DOWN_START : ANIM_IDLE_DOWN_START;
-        const frameEnd = isCurrentlyWalking ? ANIM_RUN_DOWN_END : ANIM_IDLE_DOWN_END;
-        const frameCount = frameEnd - frameStart + 1;
+        const fps = isCurrentlyWalking ? WALK_FPS : IDLE_FPS;
 
         spriteAccumRef.current += delta;
         const frameDuration = 1 / fps;
         if (spriteAccumRef.current >= frameDuration) {
           spriteAccumRef.current -= frameDuration;
-          const localFrame = (spriteFrameRef.current - frameStart + 1) % frameCount;
-          spriteFrameRef.current = frameStart + localFrame;
-          spriteRef.current.style.backgroundPosition = `${-(spriteFrameRef.current * SPRITE_FRAME_W)}px 0px`;
+          if (isCurrentlyWalking) {
+            // Cycle all 4 frames for walking
+            spriteFrameRef.current = (spriteFrameRef.current + 1) % WALK_FRAMES;
+          } else {
+            // Idle: alternate between frame 0 and 2 for subtle breathing
+            spriteFrameRef.current = spriteFrameRef.current === 0 ? 2 : 0;
+          }
+          spriteRef.current.style.backgroundPosition = `${-(spriteFrameRef.current * 25)}% 0`;
         }
       }
 
@@ -134,26 +138,17 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
     [tickMovement],
   );
 
-  const isStaticSprite = agent.status === "thinking" || agent.status === "tool_calling";
+  const hasWalkStrip = HAS_WALK_STRIP.has(spriteName);
 
   useEffect(() => {
-    if (isStaticSprite) {
-      spriteFrameRef.current = STATIC_IDLE_FRAME;
-      if (spriteRef.current) {
-        spriteRef.current.style.backgroundPosition = `${-(STATIC_IDLE_FRAME * SPRITE_FRAME_W)}px 0px`;
-      }
-      return;
-    }
-
-    spriteFrameRef.current = isWalking ? ANIM_RUN_DOWN_START : ANIM_IDLE_DOWN_START;
+    spriteFrameRef.current = 0;
     spriteAccumRef.current = 0;
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(animate);
-
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [isWalking, isStaticSprite, animate]);
+  }, [isWalking, animate]);
 
   return (
     <g
@@ -178,21 +173,35 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
       {/* Status ring with animation */}
       <StatusRing status={agent.status} r={r} color={color} isWalking={isWalking} isPlaceholder={isPlaceholder} />
 
-      {/* Animated pixel sprite — 52-frame sprite sheet */}
-      <foreignObject x={-16} y={-28} width={32} height={48} style={{ pointerEvents: "none", overflow: "visible" }}>
-        <div
-          ref={spriteRef}
-          style={{
-            width: 32,
-            height: 48,
-            backgroundImage: `url(/pixel/characters/sheets/${spriteName}.png)`,
-            backgroundPosition: `${-(STATIC_IDLE_FRAME * SPRITE_FRAME_W)}px 0px`,
-            backgroundSize: 'auto 48px',
-            imageRendering: 'pixelated',
-            transform: 'scale(1.2)',
-            transformOrigin: 'center bottom',
-          }}
-        />
+      {/* Animated pixel sprite — Gemini walk strip or static portrait */}
+      <foreignObject x={-20} y={-34} width={40} height={44} style={{ pointerEvents: "none", overflow: "visible" }}>
+        {hasWalkStrip ? (
+          <div
+            ref={spriteRef}
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundImage: `url(/pixel/characters/walks/${spriteName}.png)`,
+              backgroundPosition: '0% 0',
+              backgroundSize: '400% 100%',
+              backgroundRepeat: 'no-repeat',
+              imageRendering: 'pixelated',
+            }}
+          />
+        ) : (
+          <div
+            ref={spriteRef}
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundImage: `url(/pixel/characters/generated/${spriteName}.png)`,
+              backgroundPosition: 'center top',
+              backgroundSize: 'contain',
+              backgroundRepeat: 'no-repeat',
+              imageRendering: 'pixelated',
+            }}
+          />
+        )}
       </foreignObject>
 
       {/* Sub-agent badge */}
