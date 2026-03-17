@@ -9,7 +9,8 @@
 import fs from 'fs';
 import path from 'path';
 
-const API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyBxl9ggsRuVx3N12X20_ucJOJ2f8A2Jsk0';
+const API_KEY = process.env.GEMINI_API_KEY;
+if (!API_KEY) { console.error('Error: Set GEMINI_API_KEY env var'); process.exit(1); }
 const MODEL = 'gemini-3-pro-image-preview';
 const OUTPUT_DIR = '/Users/mark/openclaw-office/public/pixel/characters/walks';
 
