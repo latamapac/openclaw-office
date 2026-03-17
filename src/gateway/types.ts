@@ -255,6 +255,7 @@ export interface OfficeStore {
   agentCosts: Record<string, number>;
   currentPage: PageId;
   chatDockHeight: number;
+  currentFloor: number;
 
   // 配置感知
   maxSubAgents: number;
@@ -315,6 +316,7 @@ export interface OfficeStore {
   setAgentCosts: (costs: Record<string, number>) => void;
   setCurrentPage: (page: PageId) => void;
   setChatDockHeight: (height: number) => void;
+  setFloor: (floor: number) => void;
 
   // 指标
   updateMetrics: () => void;

@@ -292,6 +292,7 @@ export const useOfficeStore = create<OfficeStore>()(
     agentCosts: {} as Record<string, number>,
     currentPage: "office" as PageId,
     chatDockHeight: getInitialChatDockHeight(),
+    currentFloor: 1,
     maxSubAgents: 8,
     agentToAgentConfig: { enabled: false, allow: [] } as AgentToAgentConfig,
     runIdMap: new Map(),
@@ -1028,6 +1029,14 @@ export const useOfficeStore = create<OfficeStore>()(
       } catch {
         // localStorage unavailable
       }
+    },
+
+    setFloor: (floor: number) => {
+      set((state) => {
+        if (floor >= 0 && floor <= 7) {
+          state.currentFloor = floor;
+        }
+      });
     },
 
     setMaxSubAgents: (n: number) => {

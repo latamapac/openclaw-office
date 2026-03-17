@@ -9,6 +9,7 @@ import {
   ZONE_COLORS,
   ZONE_COLORS_DARK,
 } from "@/lib/constants";
+import { getFloor, getFloorZoneColors } from "@/lib/neocorp-floors";
 import { calculateDeskSlots, calculateMeetingSeatsSvg } from "@/lib/position-allocator";
 import { useOfficeStore } from "@/store/office-store";
 import { AgentAvatar } from "./AgentAvatar";
@@ -23,16 +24,26 @@ import {
   LoungeDecor,
   CorridorDecor,
 } from "./ZoneDecor";
+import { FloorDecor } from "./FloorDecor";
+import { FloorSelector } from "./FloorSelector";
 import { ZoneLabel } from "./ZoneLabel";
 
 export function FloorPlan() {
   const agents = useOfficeStore((s) => s.agents);
   const links = useOfficeStore((s) => s.links);
   const theme = useOfficeStore((s) => s.theme);
+  const currentFloor = useOfficeStore((s) => s.currentFloor);
 
   const agentList = Array.from(agents.values());
   const isDark = theme === "dark";
   const colors = isDark ? ZONE_COLORS_DARK : ZONE_COLORS;
+
+  // Get current floor config
+  const floor = useMemo(() => getFloor(currentFloor), [currentFloor]);
+  const floorZoneColors = useMemo(() => getFloorZoneColors(currentFloor), [currentFloor]);
+
+  // Floor 1 (Apex) uses the classic 4-zone layout for backward compatibility
+  const isClassicLayout = currentFloor === 1;
 
   const deskAgents = useMemo(
     () => agentList.filter((a) => a.zone === "desk" && !a.isSubAgent && !a.movement && a.confirmed),
@@ -130,77 +141,144 @@ export function FloorPlan() {
           width={OFFICE.width}
           height={OFFICE.height}
           rx={OFFICE.cornerRadius}
-          fill={colors.corridor}
-          stroke={colors.wall}
+          fill={isDark ? floor.theme.bg : colors.corridor}
+          stroke={isDark ? "#1a2a40" : colors.wall}
           strokeWidth={OFFICE.wallThickness}
           filter="url(#building-shadow)"
         />
 
-        {/* ── Layer 1: Corridor floor tiles ── */}
-        <CorridorFloor isDark={isDark} />
+        {isClassicLayout ? (
+          /* ── Classic 4-zone layout (Floor 1: Apex) ── */
+          <>
+            {/* Layer 1: Corridor floor tiles */}
+            <CorridorFloor isDark={isDark} />
 
-        {/* ── Layer 2: Zone floor fills ── */}
-        {Object.entries(ZONES).map(([key, zone]) => (
-          <rect
-            key={`floor-${key}`}
-            x={zone.x}
-            y={zone.y}
-            width={zone.width}
-            height={zone.height}
-            fill={
-              key === "lounge" ? "url(#lounge-carpet)" : colors[key as keyof typeof ZONE_COLORS]
-            }
-          />
-        ))}
+            {/* Layer 2: Zone floor fills */}
+            {Object.entries(ZONES).map(([key, zone]) => (
+              <rect
+                key={`floor-${key}`}
+                x={zone.x}
+                y={zone.y}
+                width={zone.width}
+                height={zone.height}
+                fill={
+                  key === "lounge" ? "url(#lounge-carpet)" : colors[key as keyof typeof ZONE_COLORS]
+                }
+              />
+            ))}
 
-        {/* ── Layer 3: Internal partition walls ── */}
-        <PartitionWalls isDark={isDark} />
+            {/* Layer 3: Internal partition walls */}
+            <PartitionWalls isDark={isDark} />
 
-        {/* ── Layer 4: Door openings (overlaid on partitions) ── */}
-        <DoorOpenings isDark={isDark} />
+            {/* Layer 4: Door openings */}
+            <DoorOpenings isDark={isDark} />
 
-        {/* Zone labels */}
-        {Object.entries(ZONES).map(([key, zone]) => (
-          <ZoneLabel key={`label-${key}`} zone={zone} zoneKey={key as keyof typeof ZONES} />
-        ))}
+            {/* Zone labels */}
+            {Object.entries(ZONES).map(([key, zone]) => (
+              <ZoneLabel key={`label-${key}`} zone={zone} zoneKey={key as keyof typeof ZONES} />
+            ))}
 
-        {/* ── Layer 5: Furniture – Desk zone ── */}
-        <DeskZoneFurniture deskSlots={deskSlots} deskAgents={deskAgents} />
-        <DeskZoneDecor isDark={isDark} />
+            {/* Layer 5: Furniture — Desk zone */}
+            <DeskZoneFurniture deskSlots={deskSlots} deskAgents={deskAgents} />
+            <DeskZoneDecor isDark={isDark} />
 
-        {/* ── Layer 5: Furniture – Meeting zone ── */}
-        <MeetingTable
-          x={meetingCenter.x}
-          y={meetingCenter.y}
-          radius={meetingTableRadius}
-          isDark={isDark}
-        />
-        <MeetingChairs
-          seats={meetingSeats}
-          meetingAgentCount={meetingAgents.length}
-          isDark={isDark}
-        />
-        <MeetingZoneDecor isDark={isDark} />
+            {/* Layer 5: Furniture — Meeting zone */}
+            <MeetingTable
+              x={meetingCenter.x}
+              y={meetingCenter.y}
+              radius={meetingTableRadius}
+              isDark={isDark}
+            />
+            <MeetingChairs
+              seats={meetingSeats}
+              meetingAgentCount={meetingAgents.length}
+              isDark={isDark}
+            />
+            <MeetingZoneDecor isDark={isDark} />
 
-        {/* ── Layer 5: Furniture – Hot desk zone ── */}
-        <HotDeskZoneFurniture slots={hotDeskSlots} agents={hotDeskAgents} />
-        <HotDeskZoneDecor isDark={isDark} />
+            {/* Layer 5: Furniture — Hot desk zone */}
+            <HotDeskZoneFurniture slots={hotDeskSlots} agents={hotDeskAgents} />
+            <HotDeskZoneDecor isDark={isDark} />
 
-        {/* ── Layer 5: Furniture – Lounge zone (incl. reception + entrance) ── */}
-        <LoungeDecor isDark={isDark} />
+            {/* Layer 5: Furniture — Lounge zone */}
+            <LoungeDecor isDark={isDark} />
 
-        {/* ── Layer 5: Corridor / Reception decor ── */}
-        <CorridorDecor isDark={isDark} />
+            {/* Layer 5: Corridor / Reception decor */}
+            <CorridorDecor isDark={isDark} />
 
-        {/* ── Layer 5a: Lounge idle agents ── */}
-        {loungeAgents.map((agent) => (
-          <AgentAvatar key={`lounge-${agent.id}`} agent={agent} />
-        ))}
+            {/* Layer 5a: Lounge idle agents */}
+            {loungeAgents.map((agent) => (
+              <AgentAvatar key={`lounge-${agent.id}`} agent={agent} />
+            ))}
 
-        {/* ── Layer 5b: Main entrance door on outer wall ── */}
-        <EntranceDoor isDark={isDark} />
+            {/* Layer 5b: Main entrance door */}
+            <EntranceDoor isDark={isDark} />
+          </>
+        ) : (
+          /* ── Multi-zone floor layout (all non-Apex floors) ── */
+          <>
+            {/* Zone floor fills */}
+            {Object.entries(floor.zones).map(([key, zone]) => (
+              <rect
+                key={`fzone-${key}`}
+                x={zone.x}
+                y={zone.y}
+                width={zone.width}
+                height={zone.height}
+                rx={4}
+                fill={floorZoneColors[key] ?? (isDark ? "#0c1524" : "#e8edf5")}
+              />
+            ))}
 
-        {/* ── Layer 6: Collaboration lines ── */}
+            {/* Zone partition lines */}
+            {Object.entries(floor.zones).map(([key, zone]) => (
+              <rect
+                key={`fzone-border-${key}`}
+                x={zone.x}
+                y={zone.y}
+                width={zone.width}
+                height={zone.height}
+                rx={4}
+                fill="none"
+                stroke={isDark ? "#1a2a40" : "#c8d0dc"}
+                strokeWidth={1.5}
+              />
+            ))}
+
+            {/* Zone labels */}
+            {Object.entries(floor.zones).map(([key, zone]) => (
+              <text
+                key={`flabel-${key}`}
+                x={zone.x + 14}
+                y={zone.y + 22}
+                fill={floor.theme.accent}
+                fontSize={8}
+                fontWeight={400}
+                fontFamily="'Press Start 2P', monospace"
+                letterSpacing="0.05em"
+                opacity={0.7}
+              >
+                {zone.label}
+              </text>
+            ))}
+
+            {/* Floor-specific decorations */}
+            <FloorDecor floor={floor} isDark={isDark} />
+
+            {/* Agents still render at their assigned positions regardless of floor */}
+            {deskAgents.map((agent) => (
+              <AgentAvatar key={`desk-${agent.id}`} agent={agent} />
+            ))}
+            {hotDeskAgents.map((agent) => (
+              <AgentAvatar key={`hotdesk-${agent.id}`} agent={agent} />
+            ))}
+            {loungeAgents.map((agent) => (
+              <AgentAvatar key={`lounge-${agent.id}`} agent={agent} />
+            ))}
+          </>
+        )}
+
+        {/* ── Layer 6: Collaboration lines (all floors) ── */}
         {links.map((link) => {
           const source = agents.get(link.sourceId);
           const target = agents.get(link.targetId);
@@ -217,23 +295,45 @@ export function FloorPlan() {
           );
         })}
 
-        {/* ── Layer 7: Meeting agents (seated) ── */}
+        {/* ── Layer 7: Meeting agents (seated) — all floors ── */}
         {meetingAgents.map((agent, i) => {
           const seat = meetingSeats[i];
           if (!seat) return null;
           return <AgentAvatar key={agent.id} agent={{ ...agent, position: seat }} />;
         })}
 
-        {/* ── Layer 7b: Unconfirmed agents at entrance (semi-transparent) ── */}
+        {/* ── Layer 7b: Unconfirmed agents at entrance ── */}
         {corridorAgents.map((agent) => (
           <AgentAvatar key={`corridor-${agent.id}`} agent={agent} />
         ))}
 
-        {/* ── Layer 8: Walking agents (above all zones, in corridor) ── */}
+        {/* ── Layer 8: Walking agents ── */}
         {walkingAgents.map((agent) => (
           <AgentAvatar key={`walk-${agent.id}`} agent={agent} />
         ))}
+
+        {/* ── Floor indicator label ── */}
+        <text
+          x={OFFICE.x + 14}
+          y={OFFICE.y + OFFICE.height + 20}
+          fill={floor.theme.accent}
+          fontSize={8}
+          fontWeight={400}
+          fontFamily="'Press Start 2P', monospace"
+          letterSpacing="0.08em"
+          opacity={0.6}
+        >
+          {currentFloor === 0
+            ? "GROUND"
+            : currentFloor === 7
+              ? "ROOFTOP"
+              : `FLOOR ${currentFloor}`}{" "}
+          — {floor.name.toUpperCase()}
+        </text>
       </svg>
+
+      {/* Floor selector overlay */}
+      <FloorSelector />
 
       {agentList
         .filter((agent) => agent.speechBubble)
@@ -342,4 +442,3 @@ function MeetingChairs({
     </g>
   );
 }
-
