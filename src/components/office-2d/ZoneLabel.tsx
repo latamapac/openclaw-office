@@ -11,17 +11,17 @@ export function ZoneLabel({ zone, zoneKey }: ZoneLabelProps) {
   const { t } = useTranslation("common");
   const theme = useOfficeStore((s) => s.theme);
   const isDark = theme === "dark";
-  const textColor = isDark ? "#64748b" : "#94a3b8";
 
   return (
     <text
       x={zone.x + 14}
       y={zone.y + 22}
-      fill={textColor}
-      fontSize={11}
-      fontWeight={600}
-      fontFamily="system-ui, sans-serif"
+      fill={isDark ? "#D7FF3B" : "#64748b"}
+      fontSize={8}
+      fontWeight={400}
+      fontFamily="'Press Start 2P', monospace"
       letterSpacing="0.05em"
+      opacity={0.7}
     >
       {t(`zones.${zoneKey}`)}
     </text>

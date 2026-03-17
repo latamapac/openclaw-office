@@ -40,30 +40,30 @@ export const CORRIDOR_CENTER = {
 } as const;
 
 export const ZONE_COLORS = {
-  desk: "#f4f6f9",
-  meeting: "#eef3fa",
-  hotDesk: "#f1f3f7",
-  lounge: "#f3f1f7",
-  corridor: "#e8ecf1",
-  wall: "#8b9bb0",
+  desk: "#e8edf5",
+  meeting: "#e0eaf5",
+  hotDesk: "#e5e8f0",
+  lounge: "#e8e5f0",
+  corridor: "#dde1e8",
+  wall: "#7a8a9e",
 } as const;
 
 export const ZONE_COLORS_DARK = {
-  desk: "#1e293b",
-  meeting: "#1a2744",
-  hotDesk: "#1e2433",
-  lounge: "#231e33",
-  corridor: "#0f172a",
-  wall: "#475569",
+  desk: "#0c1524",      // deep navy — Build Core
+  meeting: "#0e1a2e",   // slightly warmer — Command Center
+  hotDesk: "#0a1220",   // darkest — Hot Desk / R&D
+  lounge: "#14102a",    // purple tint — Lounge / Common
+  corridor: "#080c18",  // near-black corridor
+  wall: "#1a2a40",      // subtle wall color
 } as const;
 
 export const STATUS_COLORS: Record<AgentVisualStatus, string> = {
-  idle: "#22c55e",
-  thinking: "#3b82f6",
-  tool_calling: "#f97316",
-  speaking: "#a855f7",
-  spawning: "#06b6d4",
-  error: "#ef4444",
+  idle: "#D7FF3B",       // NeoCorp lime
+  thinking: "#3b82f6",   // blue
+  tool_calling: "#f97316", // orange
+  speaking: "#a855f7",   // purple
+  spawning: "#06b6d4",   // cyan
+  error: "#ef4444",      // red
   offline: "#6b7280",
 };
 

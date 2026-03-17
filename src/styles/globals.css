@@ -28,6 +28,18 @@ svg image, .pixel-render {
   z-index: 50;
 }
 
+/* Zone glow effect for active areas */
+@keyframes zone-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(215, 255, 59, 0.05)); }
+  50% { filter: drop-shadow(0 0 8px rgba(215, 255, 59, 0.1)); }
+}
+
+/* Subtle ambient pulse on the whole office */
+@keyframes ambient-breathe {
+  0%, 100% { opacity: 0.97; }
+  50% { opacity: 1; }
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -44,14 +56,14 @@ svg image, .pixel-render {
 }
 
 .dark {
-  --zone-desk: #0a1628;
-  --zone-meeting: #0c1a30;
-  --zone-hotDesk: #0e1420;
-  --zone-lounge: #140e24;
-  --zone-stroke: #1a2a40;
+  --zone-desk: #0c1524;
+  --zone-meeting: #0e1a2e;
+  --zone-hotDesk: #0a1220;
+  --zone-lounge: #14102a;
+  --zone-stroke: #D7FF3B22;
   --zone-label: #D7FF3B;
-  --dot-tooltip-bg: #050508;
-  --dot-tooltip-stroke: #D7FF3B33;
+  --dot-tooltip-bg: #050508ee;
+  --dot-tooltip-stroke: #D7FF3B44;
   --dot-tooltip-text: #e2e8f0;
   --svg-link-color: #D7FF3B;
 }
