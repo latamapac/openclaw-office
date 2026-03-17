@@ -354,8 +354,87 @@ class SubAgentSimulator {
   start(): void {
     if (this.running) return;
     this.running = true;
-    this.scheduleNextSpawn(5000);
-    this.scheduleAgentToAgentComm(20_000);
+    // Spawn sub-agents faster — office should feel busy
+    this.scheduleNextSpawn(2000);
+    // Agent-to-agent communication more frequently
+    this.scheduleAgentToAgentComm(8_000);
+    // Start main agent activity cycle
+    this.scheduleMainAgentActivity(3000);
+  }
+
+  private scheduleMainAgentActivity(delayMs: number): void {
+    this.schedule(() => {
+      if (!this.running) return;
+      // Randomly make a main agent start working
+      const agents = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"];
+      const agent = agents[Math.floor(Math.random() * agents.length)];
+      const runId = `mock-run-main-${Date.now()}`;
+      const sessionKey = `mock-session-main-${agent}`;
+
+      // Agent starts working
+      this.emit("agent", {
+        runId, seq: 1, stream: "lifecycle", ts: Date.now(),
+        data: { phase: "start", agentId: agent },
+        sessionKey,
+      });
+
+      // Agent speaks or uses tool
+      const action = Math.random();
+      if (action < 0.4) {
+        // Speaking
+        const phrases = [
+          "Reviewing the latest direction packet...",
+          "Analyzing dependency map for blockers.",
+          "Running security scan on deployment surface.",
+          "Drafting strategy memo for the positioning review.",
+          "Compiling the workforce feasibility assessment.",
+          "Checking pipeline truth against forecast.",
+          "Auditing the boundary protocol compliance.",
+          "Synthesizing competitive intelligence brief.",
+        ];
+        this.schedule(() => {
+          if (!this.running) return;
+          this.emit("agent", {
+            runId, seq: 2, stream: "assistant", ts: Date.now(),
+            data: { text: phrases[Math.floor(Math.random() * phrases.length)] },
+            sessionKey,
+          });
+        }, randRange(1500, 3000));
+      } else if (action < 0.7) {
+        // Tool calling
+        const tools = ["direction_packets", "org_state", "audit_log", "codebase", "strategy_memos", "dependency_maps"];
+        this.schedule(() => {
+          if (!this.running) return;
+          const tool = tools[Math.floor(Math.random() * tools.length)];
+          this.emit("agent", {
+            runId, seq: 2, stream: "tool", ts: Date.now(),
+            data: { name: tool, phase: "start" },
+            sessionKey,
+          });
+          this.schedule(() => {
+            if (!this.running) return;
+            this.emit("agent", {
+              runId, seq: 3, stream: "tool", ts: Date.now(),
+              data: { name: tool, phase: "end", result: "ok" },
+              sessionKey,
+            });
+          }, randRange(2000, 5000));
+        }, randRange(1000, 2000));
+      }
+
+      // Agent finishes after a while
+      this.schedule(() => {
+        if (!this.running) return;
+        this.emit("agent", {
+          runId, seq: 10, stream: "lifecycle", ts: Date.now(),
+          data: { phase: "end", agentId: agent },
+          sessionKey,
+        });
+      }, randRange(8000, 15000));
+
+      // Schedule next activity
+      this.scheduleMainAgentActivity(randRange(2000, 6000));
+    }, delayMs);
   }
 
   stop(): void {
@@ -376,7 +455,7 @@ class SubAgentSimulator {
       if (this.activeSubAgents.size < this.maxConcurrent) {
         this.spawnSubAgent();
       }
-      this.scheduleNextSpawn(randRange(3000, 8000));
+      this.scheduleNextSpawn(randRange(2000, 5000));
     }, delayMs);
   }
 
@@ -507,7 +586,7 @@ class SubAgentSimulator {
         });
       }, commDuration);
 
-      this.scheduleAgentToAgentComm(randRange(15_000, 30_000));
+      this.scheduleAgentToAgentComm(randRange(8_000, 15_000));
     }, delayMs);
   }
 }
@@ -530,7 +609,7 @@ export class MockAdapter implements GatewayAdapter {
     // Start sub-agent simulator after connection
     this.subAgentSimulator = new SubAgentSimulator(
       (event, payload) => this.emit(event, payload),
-      3,
+      6,  // more concurrent sub-agents for a busier office
     );
     this.subAgentSimulator.start();
   }
@@ -1028,3 +1107,4 @@ export class MockAdapter implements GatewayAdapter {
     };
   }
 }
+
