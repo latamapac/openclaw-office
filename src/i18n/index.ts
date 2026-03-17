@@ -14,7 +14,7 @@ import zhLayout from "./locales/zh/layout.json";
 import zhOffice from "./locales/zh/office.json";
 import zhPanels from "./locales/zh/panels.json";
 
-export const supportedLngs = ["zh", "en"] as const;
+export const supportedLngs = ["en", "zh"] as const;
 export type SupportedLng = (typeof supportedLngs)[number];
 
 export const namespaces = ["common", "layout", "office", "panels", "chat", "console"] as const;
@@ -42,7 +42,7 @@ i18n
       },
     },
     supportedLngs: [...supportedLngs],
-    fallbackLng: "zh",
+    fallbackLng: "en",
     defaultNS: "common",
     ns: [...namespaces],
     interpolation: {
