@@ -177,3 +177,44 @@ svg image, .pixel-render {
 .animate-slide-down {
   animation: chat-slide-down 150ms ease-in forwards;
 }
+
+/* ── Interactive Furniture Animations ────────────────── */
+
+@keyframes screen-flicker {
+  0%, 100% { opacity: 0.92; }
+  50% { opacity: 1; }
+}
+
+@keyframes led-blink {
+  0%, 40% { opacity: 1; }
+  50%, 90% { opacity: 0.2; }
+  100% { opacity: 1; }
+}
+
+@keyframes steam-rise {
+  0% { transform: translateY(0) scale(1); opacity: 0.6; }
+  100% { transform: translateY(-15px) scale(0.3); opacity: 0; }
+}
+
+@keyframes bubble-rise {
+  0% { transform: translateY(0); opacity: 0.5; }
+  100% { transform: translateY(-20px); opacity: 0; }
+}
+
+@keyframes rainbow-glow {
+  0% { fill: #ff6b6b; }
+  25% { fill: #4ecdc4; }
+  50% { fill: #45b7d1; }
+  75% { fill: #96ceb4; }
+  100% { fill: #ff6b6b; }
+}
+
+@keyframes clock-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+@keyframes plant-sway {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(1.02); }
+}
