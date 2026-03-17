@@ -30,16 +30,16 @@ import { useOfficeStore } from "@/store/office-store";
 const WALK_BOB_AMPLITUDE = 2;
 const WALK_BOB_FREQ = 8;
 
-// Upgraded pixel-human-generator sprite sheets: 52 frames of 32x48px each
-// Frames 0-5: idle_right, 6-11: idle_up, 12-17: idle_left, 18-23: idle_down
-// Frames 24-29: run_right, 30-35: run_up, 36-41: run_left, 42-47: run_down
+// pixel-human-generator sprite sheets: 52 frames of 32x48px each
+// Generator layout: 0-5 idle_down, 6-11 idle_up, 12-17 idle_left, 18-23 idle_right
+//                   24-29 run_down, 30-35 run_up, 36-41 run_left, 42-47 run_right
 const SPRITE_FRAME_W = 32;
 const SPRITE_FPS_WALK = 8;
 const SPRITE_FPS_IDLE = 3;
-const ANIM_IDLE_DOWN_START = 18;
-const ANIM_IDLE_DOWN_END = 23;
-const ANIM_RUN_DOWN_START = 42;
-const ANIM_RUN_DOWN_END = 47;
+const ANIM_IDLE_DOWN_START = 0;   // front-facing idle
+const ANIM_IDLE_DOWN_END = 5;
+const ANIM_RUN_DOWN_START = 24;   // front-facing run
+const ANIM_RUN_DOWN_END = 29;
 
 interface AgentAvatarProps {
   agent: VisualAgent;
@@ -176,7 +176,7 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
             width: 32,
             height: 48,
             backgroundImage: `url(/pixel/characters/${spriteName}.png)`,
-            backgroundPosition: `${-(ANIM_IDLE_DOWN_START * SPRITE_FRAME_W)}px 0px`,
+            backgroundPosition: '0px 0px',
             backgroundSize: 'auto 48px',
             imageRendering: 'pixelated',
             transform: 'scale(1.3)',
