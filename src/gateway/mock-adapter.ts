@@ -838,13 +838,21 @@ export class MockAdapter implements GatewayAdapter {
       scope: "global",
       agents: [
         { id: "main", name: "main", default: true, identity: { name: "main", emoji: "m" } },
-        {
-          id: "ai-researcher",
-          name: "ResearchClaw",
-          identity: { name: "ResearchClaw", emoji: "🔬" },
-        },
+        { id: "ai-researcher", name: "ResearchClaw", identity: { name: "ResearchClaw", emoji: "🔬" } },
         { id: "coder", name: "CodeClaw", identity: { name: "CodeClaw", emoji: "💻" } },
         { id: "ecommerce", name: "TradeClaw", identity: { name: "TradeClaw", emoji: "🛒" } },
+        { id: "ops-lead", name: "OpsClaw", identity: { name: "OpsClaw", emoji: "⚙" } },
+        { id: "security", name: "SecClaw", identity: { name: "SecClaw", emoji: "🔒" } },
+        { id: "designer", name: "DesignClaw", identity: { name: "DesignClaw", emoji: "🎨" } },
+        { id: "data-analyst", name: "DataClaw", identity: { name: "DataClaw", emoji: "📊" } },
+        { id: "alpha", name: "Alpha", identity: { name: "Alpha", emoji: "A" } },
+        { id: "beta", name: "Beta", identity: { name: "Beta", emoji: "B" } },
+        { id: "gamma", name: "Gamma", identity: { name: "Gamma", emoji: "G" } },
+        { id: "delta", name: "Delta", identity: { name: "Delta", emoji: "D" } },
+        { id: "epsilon", name: "Epsilon", identity: { name: "Epsilon", emoji: "E" } },
+        { id: "zeta", name: "Zeta", identity: { name: "Zeta", emoji: "Z" } },
+        { id: "eta", name: "Eta", identity: { name: "Eta", emoji: "H" } },
+        { id: "theta", name: "Theta", identity: { name: "Theta", emoji: "T" } },
       ],
     };
   }

@@ -85,7 +85,8 @@ function SceneContent() {
   const agents = useOfficeStore((s) => s.agents);
   const theme = useOfficeStore((s) => s.theme);
   const bloomEnabled = useOfficeStore((s) => s.bloomEnabled);
-  const agentList = Array.from(agents.values());
+  const currentFloor = useOfficeStore((s) => s.currentFloor);
+  const agentList = Array.from(agents.values()).filter((a) => a.floor === currentFloor);
 
   return (
     <>

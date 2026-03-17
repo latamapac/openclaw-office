@@ -89,6 +89,7 @@ function createVisualAgent(
   isSubAgent: boolean,
   occupied: Set<string>,
   confirmed = true,
+  floor = 1,
 ): VisualAgent {
   if (!confirmed) {
     // Unconfirmed agent: place at corridor entrance, not assigned to any zone yet
@@ -111,6 +112,7 @@ function createVisualAgent(
       originalPosition: null,
       movement: null,
       confirmed: false,
+      floor,
     };
   }
   const position = allocatePosition(id, isSubAgent, occupied);
@@ -133,6 +135,7 @@ function createVisualAgent(
     originalPosition: null,
     movement: null,
     confirmed: true,
+    floor,
   };
 }
 
@@ -487,6 +490,7 @@ export const useOfficeStore = create<OfficeStore>()(
             originalPosition: null,
             movement: null,
             confirmed: true,
+            floor: state.currentFloor,
           };
           state.agents.set(phId, ph);
         }
@@ -604,6 +608,7 @@ export const useOfficeStore = create<OfficeStore>()(
             originalPosition: null,
             movement: null,
             confirmed: true,
+            floor: state.currentFloor,
           };
           state.agents.set(phId, ph);
         }
@@ -662,9 +667,12 @@ export const useOfficeStore = create<OfficeStore>()(
         state.sessionKeyMap.clear();
 
         const occupied = new Set<string>();
-        for (const summary of summaries) {
+        for (let i = 0; i < summaries.length; i++) {
+          const summary = summaries[i];
           const name = summary.identity?.name ?? summary.name ?? summary.id;
-          const agent = createVisualAgent(summary.id, name, false, occupied);
+          // Distribute main agents across floors 0-7
+          const floor = i % 8;
+          const agent = createVisualAgent(summary.id, name, false, occupied, true, floor);
           occupied.add(positionKey(agent.position));
           state.agents.set(summary.id, agent);
         }
