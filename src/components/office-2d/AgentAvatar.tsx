@@ -68,6 +68,7 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   const color = isPlaceholder || isUnconfirmed ? "#6b7280" : STATUS_COLORS[agent.status];
   const isDark = theme === "dark";
   const spriteName = getPixelSprite(agent.id);
+  const hasWalkStrip = HAS_WALK_STRIP.has(spriteName);
   const groupOpacity = isPlaceholder ? 0.3 : isUnconfirmed ? 0.5 : 1;
 
   const displayName =
@@ -135,10 +136,8 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
 
       rafRef.current = requestAnimationFrame(animate);
     },
-    [tickMovement],
+    [tickMovement, hasWalkStrip],
   );
-
-  const hasWalkStrip = HAS_WALK_STRIP.has(spriteName);
 
   useEffect(() => {
     spriteFrameRef.current = 0;
